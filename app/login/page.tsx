@@ -2,17 +2,21 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { login } = useAuth();
+
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone || !password) {
       setError("Please fill in all fields.");
@@ -20,13 +24,24 @@ export default function LoginPage() {
     }
     setError("");
     setIsLoading(true);
-    // Simulate login
-    setTimeout(() => {
-      setIsLoading(false);
-      alert("Signed in successfully!");
-    }, 1500);
-  };
 
+    try {
+      const loggedUser = await login(phone, password);
+      // Success! Dynamic role-based redirection
+      if (loggedUser && loggedUser.role) {
+        router.push(`/${loggedUser.role}`);
+      } else {
+        setError("Login succeeded but user role is undefined.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(
+        err.message || "Invalid phone number or password. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-slate-50 font-sans">
@@ -54,7 +69,6 @@ export default function LoginPage() {
           <p className="text-white/60 mb-8 leading-relaxed text-sm">
             Continue managing your active deliveries or pick up your next delivery request.
           </p>
-
         </div>
 
         {/* Bottom Trust Cards */}
@@ -91,7 +105,6 @@ export default function LoginPage() {
             <p className="text-slate-500 mt-2 text-sm">Sign in to continue.</p>
           </div>
 
-
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-medium border border-red-100">
@@ -113,7 +126,7 @@ export default function LoginPage() {
                   required
                   maxLength={9}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                   placeholder="788 000 000"
                   className="w-full px-3 py-3 outline-none bg-transparent text-sm text-[#25343F]"
                 />

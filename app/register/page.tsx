@@ -2,19 +2,27 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
+import { GeneratedCredentials } from "@/lib/api";
 
 function RegisterForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { register } = useAuth();
+
   const [role, setRole] = useState<"customer" | "rider">("customer");
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Holds generated credentials from response
+  const [credentials, setCredentials] = useState<GeneratedCredentials | null>(null);
 
   useEffect(() => {
     const initialRole = searchParams.get("role");
@@ -23,24 +31,129 @@ function RegisterForm() {
     }
   }, [searchParams]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !phone || !password || !confirmPassword) {
+    if (!fullName || !email || !phone) {
       setError("Please fill in all fields.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
       return;
     }
     setError("");
     setIsLoading(true);
-    // Simulate registration
-    setTimeout(() => {
+
+    try {
+      const data = await register(fullName, email, phone, role);
+      if (data && data.generated_credentials) {
+        setCredentials(data.generated_credentials);
+      } else {
+        setError("Registration succeeded but no credentials were returned.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Failed to create account. Please try again.");
+    } finally {
       setIsLoading(false);
-      alert(`Account created successfully as a ${role}!`);
-    }, 1500);
+    }
   };
+
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(label);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  // Render Credentials success screen
+  if (credentials) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-md bg-white rounded-3xl p-8 sm:p-10 shadow-xl border border-slate-100"
+      >
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-500 mx-auto flex items-center justify-center text-2xl mb-4">
+            ✓
+          </div>
+          <h2 className="text-2xl font-bold text-[#25343F] tracking-tight">Account Created!</h2>
+          <p className="text-slate-500 mt-2 text-sm">
+            For security, Akamoto has generated credentials for your new account.
+          </p>
+        </div>
+
+        <div className="bg-[#EAEFEF]/30 border border-[#BFC9D1]/30 rounded-2xl p-5 space-y-4 mb-6">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#25343F]/50">
+            Your login details:
+          </p>
+
+          {/* Phone Detail */}
+          <div>
+            <label className="block text-[10px] font-bold text-[#25343F]/60 uppercase mb-1">
+              Registered Phone
+            </label>
+            <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-200 text-sm">
+              <span className="font-mono text-[#25343F] font-medium">+{credentials.phone}</span>
+              <button
+                type="button"
+                onClick={() => handleCopy("+" + credentials.phone, "phone")}
+                className="text-xs text-[#FF9B51] hover:text-[#25343F] font-semibold cursor-pointer"
+              >
+                {copiedField === "phone" ? "Copied!" : "Copy"}
+              </button>
+            </div>
+          </div>
+
+          {/* Username Detail */}
+          <div>
+            <label className="block text-[10px] font-bold text-[#25343F]/60 uppercase mb-1">
+              Generated Username
+            </label>
+            <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-200 text-sm">
+              <span className="font-mono text-[#25343F] font-medium">{credentials.username}</span>
+              <button
+                type="button"
+                onClick={() => handleCopy(credentials.username, "username")}
+                className="text-xs text-[#FF9B51] hover:text-[#25343F] font-semibold cursor-pointer"
+              >
+                {copiedField === "username" ? "Copied!" : "Copy"}
+              </button>
+            </div>
+          </div>
+
+          {/* Generated Password Detail */}
+          <div>
+            <label className="block text-[10px] font-bold text-[#25343F]/60 uppercase mb-1">
+              Generated Password
+            </label>
+            <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-[#FF9B51] bg-[#FF9B51]/5 text-sm">
+              <span className="font-mono font-bold text-[#25343F] select-all tracking-wider text-base">
+                {credentials.password}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleCopy(credentials.password, "password")}
+                className="text-xs text-[#FF9B51] hover:text-[#25343F] font-bold cursor-pointer bg-white px-2.5 py-1 rounded-lg border border-[#FF9B51]/30 shadow-sm"
+              >
+                {copiedField === "password" ? "Copied!" : "Copy"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[#FF9B51]/10 border border-[#FF9B51]/20 rounded-2xl p-4 mb-6 text-xs text-[#25343F]/80 flex gap-2">
+          <span className="text-[#FF9B51] font-bold text-base leading-none">⚠️</span>
+          <span>
+            Please copy and save the password now. You will need it to sign in to your dashboard.
+          </span>
+        </div>
+
+        <button
+          onClick={() => router.push("/login")}
+          className="w-full bg-[#25343F] hover:bg-[#1a252d] text-white font-semibold py-3.5 px-4 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer text-sm"
+        >
+          Proceed to Sign In
+        </button>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -114,6 +227,21 @@ function RegisterForm() {
           />
         </div>
 
+        {/* Email */}
+        <div>
+          <label className="block text-xs font-semibold text-[#25343F] mb-1.5 uppercase tracking-wide">
+            Email Address
+          </label>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="aline@example.com"
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-[#FF9B51] focus:ring-1 focus:ring-[#FF9B51] outline-none transition-all duration-150 bg-slate-50 focus:bg-white text-sm text-[#25343F] shadow-sm focus:-translate-y-[1px]"
+          />
+        </div>
+
         {/* Phone Number */}
         <div>
           <label className="block text-xs font-semibold text-[#25343F] mb-1.5 uppercase tracking-wide">
@@ -128,48 +256,25 @@ function RegisterForm() {
               required
               maxLength={9}
               value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
               placeholder="788 000 000"
               className="w-full px-3 py-2.5 outline-none bg-transparent text-sm text-[#25343F]"
             />
           </div>
         </div>
 
-        {/* Password */}
-        <div>
-          <label className="block text-xs font-semibold text-[#25343F] mb-1.5 uppercase tracking-wide">
-            Password
-          </label>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-[#FF9B51] focus:ring-1 focus:ring-[#FF9B51] outline-none transition-all duration-150 bg-slate-50 focus:bg-white text-sm text-[#25343F] shadow-sm focus:-translate-y-[1px]"
-          />
-        </div>
-
-        {/* Confirm Password */}
-        <div>
-          <label className="block text-xs font-semibold text-[#25343F] mb-1.5 uppercase tracking-wide">
-            Confirm Password
-          </label>
-          <input
-            type="password"
-            required
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="••••••••"
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-[#FF9B51] focus:ring-1 focus:ring-[#FF9B51] outline-none transition-all duration-150 bg-slate-50 focus:bg-white text-sm text-[#25343F] shadow-sm focus:-translate-y-[1px]"
-          />
+        <div className="bg-slate-50 rounded-2xl p-4 text-[11px] text-[#25343F]/60 flex gap-2">
+          <span>ℹ️</span>
+          <span>
+            Akamoto will auto-generate your username and secure password, which will be shown on the next screen.
+          </span>
         </div>
 
         {/* Submit */}
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-[#25343F] hover:bg-[#1a252d] text-white font-semibold py-3.5 px-4 rounded-xl transition-all duration-150 shadow-md hover:shadow-lg focus:outline-none flex items-center justify-center gap-2 cursor-pointer text-sm pt-4"
+          className="w-full bg-[#25343F] hover:bg-[#1a252d] text-white font-semibold py-3.5 px-4 rounded-xl transition-all duration-150 shadow-md hover:shadow-lg focus:outline-none flex items-center justify-center gap-2 cursor-pointer text-sm"
         >
           {isLoading ? (
             <>
@@ -241,7 +346,6 @@ export default function RegisterPage() {
           <p className="text-white/60 mb-8 leading-relaxed text-sm">
             Whether you are sending packages or becoming a rider, you are only a few steps away.
           </p>
-
         </div>
 
         {/* Bottom Trust Cards */}
@@ -260,14 +364,16 @@ export default function RegisterPage() {
 
       {/* Right Side (Form) */}
       <div className="flex flex-col justify-center items-center p-6 sm:p-12">
-        <Suspense fallback={
-          <div className="w-full max-w-md bg-white rounded-3xl p-8 sm:p-10 shadow-xl border border-slate-100 flex items-center justify-center">
-            <svg className="animate-spin h-8 w-8 text-[#FF9B51]" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-          </div>
-        }>
+        <Suspense
+          fallback={
+            <div className="w-full max-w-md bg-white rounded-3xl p-8 sm:p-10 shadow-xl border border-slate-100 flex items-center justify-center">
+              <svg className="animate-spin h-8 w-8 text-[#FF9B51]" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            </div>
+          }
+        >
           <RegisterForm />
         </Suspense>
       </div>
