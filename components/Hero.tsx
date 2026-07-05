@@ -38,8 +38,8 @@ export default function Hero() {
           className="max-w-xl"
         >
           <motion.div variants={fadeUp}>
-            <p className="text-sm font-semibold text-[#FF9B51] mb-6">
-              Available in your area 
+            <p className="text-sm font-semibold text-[#FF9B51] mb-6 tracking-wide">
+              Akamoto available in your area
             </p>
           </motion.div>
 
@@ -57,25 +57,39 @@ export default function Hero() {
             variants={fadeUp}
             className="text-lg text-[#25343F]/60 leading-relaxed mb-10 max-w-md"
           >
-            Akamoto connects you with nearby riders for fast, affordable local deliveries.
+            Connect with nearby riders for fast, affordable local deliveries.
             Enter a pickup, enter a destination. A rider is already on the way.
           </motion.p>
 
-          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3">
-            <Link
-              href="/register"
-              id="hero-cta-send"
-              className="bg-[#25343F] text-white font-semibold px-8 py-4 rounded-xl hover:bg-[#FF9B51] transition-colors text-sm text-center"
+          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              animate={{
+                boxShadow: [
+                  "0 0 0 0 rgba(255, 155, 81, 0.4)",
+                  "0 0 0 20px rgba(255, 155, 81, 0)",
+                  "0 0 0 0 rgba(255, 155, 81, 0)"
+                ],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                repeatDelay: 1,
+              }}
             >
-              Send a package
-            </Link>
-            <button
-              id="hero-cta-how"
-              onClick={() => scrollTo("#how-it-works")}
-              className="bg-transparent border border-[#BFC9D1] text-[#25343F] font-semibold px-8 py-4 rounded-xl hover:border-[#25343F] transition-colors text-sm cursor-pointer"
-            >
-              See how it works
-            </button>
+              <Link
+                href="/register"
+                id="hero-cta-send"
+                className="group relative inline-flex items-center justify-center gap-2 bg-[#FF9B51] text-white font-bold px-10 py-5 rounded-2xl text-base sm:text-lg text-center shadow-xl shadow-[#FF9B51]/35 hover:bg-[#e8883e] hover:shadow-[#FF9B51]/50 hover:-translate-y-0.5 transition-all duration-200 ring-4 ring-[#FF9B51]/20"
+              >
+                <span className="absolute inset-0 rounded-2xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="relative">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span className="relative">Send a Package Now</span>
+              </Link>
+            </motion.div>
           </motion.div>
 
           <motion.div
@@ -108,16 +122,16 @@ export default function Hero() {
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-          className="hidden lg:flex justify-center items-center"
+          className="flex justify-center items-center lg:justify-end"
         >
-          <div className="relative">
-            <div className="absolute inset-0 bg-[#FF9B51]/10 rounded-3xl blur-2xl scale-110 pointer-events-none" />
+          <div className="relative w-full max-w-[800px]">
+            <div className="absolute -inset-8 bg-[#FF9B51]/15 rounded-[2rem] blur-3xl pointer-events-none" />
             <Image
               src="/hero-mockup.png"
-              alt="Akamoto delivery tracking card"
-              width={480}
-              height={480}
-              className="relative rounded-3xl drop-shadow-2xl"
+              alt="Delivery tracking card"
+              width={800}
+              height={800}
+              className="relative w-full h-auto rounded-3xl drop-shadow-2xl scale-125"
               priority
             />
           </div>

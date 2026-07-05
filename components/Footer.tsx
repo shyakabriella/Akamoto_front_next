@@ -1,18 +1,17 @@
 const footerLinks = {
   Product: [
     { label: "How it works", href: "#how-it-works" },
-    { label: "Features", href: "#features" },
-    { label: "Pricing", href: "#" },
+    { label: "For riders", href: "#for-riders" },
+    { label: "Benefits", href: "#benefits" },
+    { label: "Testimonials", href: "#testimonials" },
   ],
   Company: [
     { label: "About", href: "#" },
-    { label: "Blog", href: "#" },
-    { label: "Careers", href: "#" },
+    { label: "Contact", href: "#" },
   ],
   Legal: [
     { label: "Privacy Policy", href: "#" },
     { label: "Terms of Service", href: "#" },
-    { label: "Cookie Policy", href: "#" },
   ],
 };
 

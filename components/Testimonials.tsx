@@ -35,7 +35,7 @@ const item = {
 
 export default function Testimonials() {
   return (
-    <section className="py-24 sm:py-32">
+    <section id="testimonials" className="py-24 sm:py-32">
       <div className="max-w-6xl mx-auto px-5 sm:px-8">
         <div className="text-center max-w-xl mx-auto mb-16">
           <p className="text-sm font-semibold text-[#FF9B51] tracking-wide uppercase mb-3">

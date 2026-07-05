@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 
 const stats = [
   { value: "10k+", label: "Deliveries completed" },
-  { value: "15 min", label: "Average pickup time" },
   { value: "500+", label: "Active riders" },
   { value: "4.9", label: "Customer rating" },
 ];
@@ -28,7 +27,7 @@ export default function Stats() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-10"
+          className="grid grid-cols-1 md:grid-cols-3 gap-10"
         >
           {stats.map((s) => (
             <motion.div key={s.label} variants={item} className="text-center">

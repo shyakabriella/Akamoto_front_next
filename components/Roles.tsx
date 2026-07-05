@@ -112,10 +112,10 @@ export default function Roles() {
                 Riders
               </p>
               <h3 className="text-2xl font-bold text-[#25343F] mb-2">
-                Earn on your own schedule
+                Deliver on your own schedule
               </h3>
               <p className="text-[#25343F]/60 text-sm leading-relaxed mb-8">
-                Accept jobs close to you, deliver them, get paid. Simple as that.
+                Go online when you are free, accept jobs near you, and build your delivery reputation.
               </p>
             </motion.div>
 
