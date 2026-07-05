@@ -208,11 +208,23 @@ export default function AnalyticsPage() {
               <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#6b7280" />
               <YAxis yAxisId="left" tick={{ fontSize: 12 }} stroke="#6b7280" />
               <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} stroke="#6b7280" />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px' }}
-                formatter={(value: number, name: string) => {
-                  if (name === 'revenue') return [`${value.toLocaleString()} RWF`, 'Revenue'];
-                  return [value, name];
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#fff",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  fontSize: "12px"
+                }}
+                formatter={(value, name) => {
+                  const label = String(name ?? "");
+                  const numericValue =
+                    typeof value === "number" ? value : Number(value ?? 0);
+
+                  if (label === "revenue") {
+                    return [`${numericValue.toLocaleString()} RWF`, "Revenue"];
+                  }
+
+                  return [String(value ?? ""), label];
                 }}
               />
               <Line yAxisId="left" type="monotone" dataKey="orders" stroke="#FF9B51" strokeWidth={2} dot={{ fill: '#FF9B51' }} name="Orders" />
