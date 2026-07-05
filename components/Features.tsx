@@ -53,12 +53,9 @@ export default function Features() {
           <p className="text-sm font-semibold text-[#FF9B51] tracking-wide uppercase mb-3">
             Features
           </p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-[#25343F] leading-tight mb-4">
-            Everything a delivery platform should have
+          <h2 className="text-3xl sm:text-4xl font-bold text-[#25343F] leading-tight">
+            Built for real city deliveries
           </h2>
-          <p className="text-[#25343F]/60 text-lg">
-            Built around real problems that customers and riders face every day.
-          </p>
         </div>
 
         <motion.div
