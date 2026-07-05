@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { api, User, RegisterResponse, LoginResponse } from "@/lib/api";
+import { api, User, RegisterResponse } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
@@ -25,7 +25,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize state from localStorage
   useEffect(() => {
     async function initAuth() {
       if (typeof window === "undefined") return;
@@ -35,25 +34,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (storedToken) {
         setToken(storedToken);
+
         if (storedUser) {
           try {
             setUser(JSON.parse(storedUser));
           } catch {
-            // ignore JSON parse error, fetch fresh profile
+            /* ignore */
           }
         }
 
-        // Fetch fresh profile from API to ensure token is still valid
         try {
-          const freshUser = await api.getProfile();
-          // getProfile now returns the User object directly
-          if (freshUser && freshUser.role) {
+          const freshUser = await api.getMe();
+          if (freshUser?.role) {
             setUser(freshUser);
             localStorage.setItem("akamoto_user", JSON.stringify(freshUser));
           }
         } catch (err) {
           console.error("Failed to fetch user profile, logging out:", err);
-          // Token is invalid/expired, reset auth state
           localStorage.removeItem("akamoto_token");
           localStorage.removeItem("akamoto_user");
           setToken(null);
@@ -72,19 +69,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await api.login(phone, password);
       if (res.success && res.data) {
         const { token: userToken, user: loggedUser } = res.data;
-        
         localStorage.setItem("akamoto_token", userToken);
         localStorage.setItem("akamoto_user", JSON.stringify(loggedUser));
-        
         setToken(userToken);
         setUser(loggedUser);
         return loggedUser;
-      } else {
-        throw new Error(res.message || "Failed to login");
       }
-    } catch (error) {
-      setIsLoading(false);
-      throw error;
+      throw new Error(res.message || "Failed to login");
     } finally {
       setIsLoading(false);
     }
@@ -99,14 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       const res = await api.register(name, email, phone, role);
-      if (res.success && res.data) {
-        // We do NOT automatically log them in or set user state here because the user
-        // must copy down their auto-generated credentials (password) first!
-        // We will return the data containing the generated credentials to the caller.
-        return res.data;
-      } else {
-        throw new Error(res.message || "Failed to register");
-      }
+      if (res.success && res.data) return res.data;
+      throw new Error(res.message || "Failed to register");
     } finally {
       setIsLoading(false);
     }
@@ -130,15 +115,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const isAuthenticated = !!token && !!user;
-
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
         isLoading,
-        isAuthenticated,
+        isAuthenticated: !!token && !!user,
         login,
         register,
         logout,
