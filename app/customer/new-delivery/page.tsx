@@ -202,33 +202,15 @@ export default function NewDeliveryPage() {
     setIsFallbackQuote(false);
 
     try {
-      const res = await fetch("https://api.icotrix.com/api/pricing/quote", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${localStorage.getItem("akamoto_token")}`,
-        },
-        body: JSON.stringify({
-          pickup_latitude: pickupLocation.lat,
-          pickup_longitude: pickupLocation.lng,
-          dropoff_latitude: dropoffLocation.lat,
-          dropoff_longitude: dropoffLocation.lng,
-          vehicle_type: "moto",
-        }),
+      const quote = await api.getQuote({
+        pickup_latitude: pickupLocation.lat,
+        pickup_longitude: pickupLocation.lng,
+        dropoff_latitude: dropoffLocation.lat,
+        dropoff_longitude: dropoffLocation.lng,
+        vehicle_type: "moto",
       });
-
-      const data = await res.json();
-      if (data.success && data.data) {
-        setQuote(data.data);
-        setStep(2);
-      } else {
-        const dist = getDistanceKm(pickupLocation.lat, pickupLocation.lng, dropoffLocation.lat, dropoffLocation.lng);
-        const fallback = calculateFallbackPrice(dist);
-        setQuote(fallback);
-        setIsFallbackQuote(true);
-        setStep(2);
-      }
+      setQuote(quote);
+      setStep(2);
     } catch (err) {
       const dist = getDistanceKm(pickupLocation.lat, pickupLocation.lng, dropoffLocation.lat, dropoffLocation.lng);
       const fallback = calculateFallbackPrice(dist);

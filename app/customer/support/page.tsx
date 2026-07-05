@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
+import { api } from "@/lib/api";
 import SectionHeader from "@/components/customer/SectionHeader";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import { Mail, Phone, Clock, CheckCircle2 } from "lucide-react";
 
 const issueTypes = [
@@ -18,10 +21,25 @@ export default function SupportPage() {
   const [orderId, setOrderId] = useState("");
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setLoading(true);
+    setError("");
+    try {
+      await api.createDispute({
+        order_id: parseInt(orderId) || 0,
+        type: issueType,
+        description: message,
+      });
+      setSubmitted(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to submit support request");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -54,6 +72,8 @@ export default function SupportPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <SectionHeader title="Customer Support" description="Experiencing an issue? We're here to help." />
+
+      {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
 
       {/* Contact Methods */}
       <div className="grid sm:grid-cols-3 gap-3">
@@ -96,7 +116,7 @@ export default function SupportPage() {
             type="text"
             value={orderId}
             onChange={(e) => setOrderId(e.target.value)}
-            placeholder="e.g. DEL-001"
+            placeholder="e.g. 123"
             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#FF9B51] focus:ring-1 focus:ring-[#FF9B51] outline-none text-sm text-[#25343F] bg-slate-50 focus:bg-white transition-all"
           />
         </div>
@@ -115,9 +135,10 @@ export default function SupportPage() {
 
         <button
           type="submit"
-          className="w-full py-3.5 bg-[#25343F] hover:bg-[#1a252d] text-white font-bold text-sm rounded-2xl transition-all shadow-sm cursor-pointer"
+          disabled={loading}
+          className="w-full py-3.5 bg-[#25343F] hover:bg-[#1a252d] text-white font-bold text-sm rounded-2xl transition-all shadow-sm cursor-pointer disabled:opacity-50"
         >
-          Send Support Request
+          {loading ? "Sending..." : "Send Support Request"}
         </button>
       </form>
     </div>

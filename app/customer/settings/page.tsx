@@ -1,61 +1,154 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 import SectionHeader from "@/components/customer/SectionHeader";
-
-import { MapPin } from "lucide-react";
+import ErrorBanner from "@/components/ui/ErrorBanner";
+import { MapPin, CheckCircle2, Trash2, Upload } from "lucide-react";
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const [name, setName] = useState(user?.name ?? "");
-  const [email, setEmail] = useState(user?.email ?? "");
-  const [saved, setSaved] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleSave = (e: React.FormEvent) => {
+  const [locationAddress, setLocationAddress] = useState("");
+  const [streetCode, setStreetCode] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const profile = await api.getProfileDetails();
+        if (profile) {
+          setLocationAddress(profile.location_address ?? "");
+          setStreetCode(profile.street_code ?? "");
+          setImageUrl(profile.image_url ?? null);
+        }
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to load profile");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
+    setSaving(true);
+    setError("");
+    setSuccess(false);
+    try {
+      const updated = await api.updateProfile({
+        image: imageFile ?? undefined,
+        location_address: locationAddress || undefined,
+        street_code: streetCode || undefined,
+      });
+      setImageUrl(updated.image_url ?? null);
+      setImageFile(null);
+      setPreview(null);
+      setSuccess(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save profile");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteImage() {
+    try {
+      await api.deleteProfileImage();
+      setImageUrl(null);
+      setPreview(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to delete image");
+    }
+  }
+
+  const avatarSrc = preview ?? imageUrl;
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <SectionHeader title="Account Settings" description="Manage your profile and preferences." />
 
-      {/* Profile Details */}
+      {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
+
       <form onSubmit={handleSave} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-5">
         <h3 className="text-sm font-bold text-[#25343F]">Profile Information</h3>
 
-        {/* Avatar */}
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-3xl bg-[#25343F] text-white font-black text-xl flex items-center justify-center shadow-sm">
-            {user?.name?.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2)}
+          <div className="relative">
+            {avatarSrc ? (
+              <img src={avatarSrc} alt="Profile" className="w-16 h-16 rounded-3xl object-cover shadow-sm" />
+            ) : (
+              <div className="w-16 h-16 rounded-3xl bg-[#25343F] text-white font-black text-xl flex items-center justify-center shadow-sm">
+                {user?.name?.split(" ").map((n) => n[0]).join("").toUpperCase().substring(0, 2)}
+              </div>
+            )}
           </div>
-          <div>
-            <p className="text-sm font-bold text-[#25343F]">{user?.name}</p>
-            <p className="text-xs text-slate-400">@{user?.username}</p>
-            <span className="text-[10px] bg-slate-100 text-slate-500 font-bold px-2 py-0.5 rounded-full capitalize">
-              {user?.role} account
-            </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="text-xs font-bold text-[#FF9B51] border border-[#FF9B51]/30 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-[#FF9B51]/5"
+            >
+              <Upload className="w-3.5 h-3.5 inline mr-1" /> Upload Photo
+            </button>
+            {(avatarSrc || imageUrl) && (
+              <button
+                type="button"
+                onClick={handleDeleteImage}
+                className="text-xs font-bold text-red-500 border border-red-100 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-red-50"
+              >
+                <Trash2 className="w-3.5 h-3.5 inline mr-1" /> Remove
+              </button>
+            )}
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-[#25343F] uppercase tracking-wide mb-1.5">Full Name</label>
+          <p className="text-sm font-bold text-[#25343F]">{user?.name}</p>
+          <p className="text-xs text-slate-400">@{user?.username}</p>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-[#25343F] uppercase tracking-wide mb-1.5">
+            <MapPin className="w-3.5 h-3.5 inline mr-1" /> Location Address
+          </label>
           <input
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={locationAddress}
+            onChange={(e) => setLocationAddress(e.target.value)}
+            placeholder="Kigali, Rwanda"
+            disabled={loading}
             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#FF9B51] focus:ring-1 focus:ring-[#FF9B51] outline-none text-sm text-[#25343F] bg-slate-50 focus:bg-white transition-all"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-[#25343F] uppercase tracking-wide mb-1.5">Email Address</label>
+          <label className="block text-xs font-bold text-[#25343F] uppercase tracking-wide mb-1.5">Street Code</label>
           <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            value={streetCode}
+            onChange={(e) => setStreetCode(e.target.value)}
+            placeholder="KG 15 Ave"
+            disabled={loading}
             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#FF9B51] focus:ring-1 focus:ring-[#FF9B51] outline-none text-sm text-[#25343F] bg-slate-50 focus:bg-white transition-all"
           />
         </div>
@@ -68,52 +161,24 @@ export default function SettingsPage() {
             disabled
             className="w-full px-4 py-3 rounded-xl border border-slate-100 text-sm text-slate-400 bg-slate-50 cursor-not-allowed"
           />
-          <p className="text-[10px] text-slate-400 mt-1">Phone number cannot be changed. Contact support if needed.</p>
         </div>
 
         <button
           type="submit"
-          className={`w-full py-3.5 font-bold text-sm rounded-2xl transition-all shadow-sm cursor-pointer ${
-            saved ? "bg-emerald-500 text-white" : "bg-[#25343F] hover:bg-[#1a252d] text-white"
+          disabled={saving || loading}
+          className={`w-full py-3.5 font-bold text-sm rounded-2xl transition-all shadow-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 ${
+            success ? "bg-emerald-500 text-white" : "bg-[#25343F] hover:bg-[#1a252d] text-white"
           }`}
         >
-          {saved ? "✓ Changes Saved!" : "Save Changes"}
+          {success ? (
+            <><CheckCircle2 className="w-4 h-4" /> Saved!</>
+          ) : saving ? (
+            "Saving..."
+          ) : (
+            "Save Changes"
+          )}
         </button>
       </form>
-
-      {/* Saved Addresses (Placeholder) */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-        <h3 className="text-sm font-bold text-[#25343F] mb-1">Saved Addresses</h3>
-        <p className="text-xs text-slate-400 mb-4">Save frequently used pickup or drop-off addresses.</p>
-        <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center flex flex-col items-center justify-center">
-          <MapPin className="w-8 h-8 text-slate-300 mb-2" />
-          <p className="text-sm font-semibold text-slate-400">No saved addresses yet</p>
-          <p className="text-xs text-slate-300 mt-1">This feature is coming soon.</p>
-        </div>
-      </div>
-
-      {/* Security */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-        <h3 className="text-sm font-bold text-[#25343F] mb-4">Security</h3>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between py-3 border-b border-slate-50">
-            <div>
-              <p className="text-sm font-semibold text-[#25343F]">Password</p>
-              <p className="text-xs text-slate-400">Change your auto-generated password</p>
-            </div>
-            <button className="text-xs font-bold text-[#FF9B51] hover:underline cursor-pointer">Change →</button>
-          </div>
-          <div className="flex items-center justify-between py-3">
-            <div>
-              <p className="text-sm font-semibold text-[#25343F]">Account Status</p>
-              <p className="text-xs text-slate-400">Your account is active and verified</p>
-            </div>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
-              Active
-            </span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
