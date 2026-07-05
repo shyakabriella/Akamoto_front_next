@@ -136,7 +136,7 @@ export default function AdminOverviewPage() {
             </div>
             <span className="text-xs text-gray-500">Active</span>
           </div>
-          <p className="text-2xl font-bold text-gray-800">{MOCK_ADMIN_ORDERS.filter((o) => o.status === "pending" || o.status === "rider_assigned").length}</p>
+          <p className="text-2xl font-bold text-gray-800">{MOCK_ADMIN_ORDERS.filter((o) => o.status === "requested" || o.status === "accepted").length}</p>
           <p className="text-xs text-gray-500 mt-1">Pending Deliveries</p>
         </div>
 
