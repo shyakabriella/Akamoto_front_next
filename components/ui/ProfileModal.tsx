@@ -49,21 +49,28 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setLoading(true);
     setError("");
     try {
-      const profile = await api.getProfile();
-      if (profile) {
-        setName(profile.user?.name || "");
-        setEmail(profile.user?.email || "");
-        setPhone(profile.user?.phone || "");
-        setLocationAddress(profile.location_address || "");
-        setStreetCode(profile.street_code || "");
-        setImageUrl(profile.image_url || null);
+      const currentUser = await api.getMe();
+      if (currentUser) {
+        setName(currentUser.name || "");
+        setEmail(currentUser.email || "");
+        setPhone(currentUser.phone || "");
+      }
 
-        if (isRider && profile.vehicle_type) {
-          setVehicleType(profile.vehicle_type);
-          setVehiclePlateNumber(profile.vehicle_plate_number || "");
-          setVehicleColor(profile.vehicle_color || "");
-          setNationalId(profile.national_id || "");
-          setDrivingLicenseNumber(profile.driving_license_number || "");
+      const userProfile = await api.getProfileDetails();
+      if (userProfile) {
+        setLocationAddress(userProfile.location_address || "");
+        setStreetCode(userProfile.street_code || "");
+        setImageUrl(userProfile.image_url || null);
+      }
+
+      if (isRider) {
+        const riderProfile = await api.getRiderProfile();
+        if (riderProfile) {
+          setVehicleType(riderProfile.vehicle_type);
+          setVehiclePlateNumber(riderProfile.vehicle_plate_number || "");
+          setVehicleColor(riderProfile.vehicle_color || "");
+          setNationalId(riderProfile.national_id || "");
+          setDrivingLicenseNumber(riderProfile.driving_license_number || "");
         }
       }
     } catch (err: unknown) {

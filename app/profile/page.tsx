@@ -39,11 +39,15 @@ export default function ProfilePage() {
       setLoading(true);
       setError("");
       try {
+        const currentUser = await api.getMe();
+        if (currentUser) {
+          setName(currentUser.name || "");
+          setEmail(currentUser.email || "");
+          setPhone(currentUser.phone || "");
+        }
+
         const userProfile = await api.getProfileDetails();
         if (userProfile) {
-          setName(userProfile.name || "");
-          setEmail(userProfile.email || "");
-          setPhone(userProfile.phone || "");
           setLocationAddress(userProfile.location_address || "");
           setStreetCode(userProfile.street_code || "");
           setImageUrl(userProfile.image_url || null);
