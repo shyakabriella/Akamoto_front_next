@@ -1,177 +1,234 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import AuthGuard from "@/components/AuthGuard";
-import { useAuth } from "@/context/AuthContext";
-import { api } from "@/lib/api";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { api } from "@/lib/api";
+import { RiderProfile } from "@/lib/types";
+import PageLoader from "@/components/ui/PageLoader";
+import ErrorBanner from "@/components/ui/ErrorBanner";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { AlertCircle, ArrowRight, Package, TrendingUp, DollarSign, Truck, Star, Wifi } from "lucide-react";
 
-function RiderDashboardContent() {
-  const { user, logout } = useAuth();
-  const [isOnline, setIsOnline] = useState(false);
-  const [isToggling, setIsToggling] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("");
+// Mock data for weekly earnings
+const weeklyEarningsData = [
+  { day: "Mon", earnings: 4500 },
+  { day: "Tue", earnings: 6200 },
+  { day: "Wed", earnings: 3800 },
+  { day: "Thu", earnings: 7500 },
+  { day: "Fri", earnings: 8900 },
+  { day: "Sat", earnings: 12000 },
+  { day: "Sun", earnings: 5400 },
+];
+
+// Mock data for recent deliveries
+const recentDeliveries = [
+  { id: "DEL-001", pickup: "Nyabugogo", dropoff: "Remera", status: "DELIVERED", amount: 2400 },
+  { id: "DEL-002", pickup: "Kigali Heights", dropoff: "Nyamirambo", status: "DELIVERED", amount: 3200 },
+  { id: "DEL-003", pickup: "Kacyiru", dropoff: "Kimironko", status: "DELIVERED", amount: 1800 },
+  { id: "DEL-004", pickup: "Downtown", dropoff: "Kanombe", status: "CANCELLED", amount: 0 },
+  { id: "DEL-005", pickup: "Gisozi", dropoff: "Kicukiro", status: "IN TRANSIT", amount: 2000 },
+];
+
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07 } },
+};
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+};
+
+export default function RiderDashboardPage() {
+  const [profile, setProfile] = useState<RiderProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Fetch initial profile to check online status if backend supports it
   useEffect(() => {
-    async function checkStatus() {
+    async function load() {
       try {
-        const res = await api.getProfile();
-        // Assume backend profile returns rider status details
-        // If not, default to offline
-      } catch (err) {
-        console.error("Could not fetch profile for online status state", err);
+        const data = await api.getRiderProfile();
+        setProfile(data);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to load rider profile");
+      } finally {
+        setLoading(false);
       }
     }
-    checkStatus();
+    load();
   }, []);
 
-  const handleToggleOnline = async () => {
-    setIsToggling(true);
-    setError("");
-    setStatusMessage("");
-    try {
-      if (isOnline) {
-        const res = await api.goOffline();
-        setIsOnline(false);
-        setStatusMessage("You are now offline. You won't receive delivery requests.");
-      } else {
-        const res = await api.goOnline();
-        setIsOnline(true);
-        setStatusMessage("You are online! Waiting for nearby delivery requests...");
-      }
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Failed to update status. Please make sure your profile is approved.");
-    } finally {
-      setIsToggling(false);
-    }
-  };
+  if (loading) return <PageLoader label="Loading rider dashboard..." />;
+
+  const needsProfile = !profile;
+  const isPending = profile?.status === "pending";
+  const isRejected = profile?.status === "rejected";
+  const isApproved = profile?.status === "approved";
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-      {/* Header */}
-      <header className="bg-white border-b border-[#EAEFEF] sticky top-0 z-10 shadow-sm">
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="font-bold text-xl text-[#25343F]">
-              Akamoto
+    <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
+
+      {/* Welcome Message */}
+      <motion.div variants={fadeUp}>
+        <h1 className="text-2xl font-bold text-gray-800">Welcome back</h1>
+        <p className="text-gray-500 text-sm mt-1">Manage your deliveries and earnings</p>
+      </motion.div>
+
+      {error && <ErrorBanner message={error} />}
+
+      {/* KPI Cards */}
+      <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Delivered Orders */}
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+              <Package className="w-5 h-5 text-green-600" />
+            </div>
+            <span className="text-xs text-gray-500">All time</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-800">{profile?.total_orders || 0}</p>
+          <p className="text-xs text-gray-500 mt-1">Delivered Orders</p>
+        </div>
+
+        {/* Pending Deliveries */}
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center">
+              <Truck className="w-5 h-5 text-yellow-600" />
+            </div>
+            <span className="text-xs text-gray-500">Active</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-800">0</p>
+          <p className="text-xs text-gray-500 mt-1">Pending Deliveries</p>
+        </div>
+
+        {/* Total Earnings */}
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+              <DollarSign className="w-5 h-5 text-purple-600" />
+            </div>
+            <span className="text-xs text-gray-500">All time</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-800">{profile?.total_earnings ? `${profile.total_earnings.toLocaleString()} RWF` : "0 RWF"}</p>
+          <p className="text-xs text-gray-500 mt-1">Total Paid</p>
+        </div>
+
+        {/* Commission */}
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+            </div>
+            <span className="text-xs text-gray-500">Avg</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-800">20%</p>
+          <p className="text-xs text-gray-500 mt-1">Commission Rate</p>
+        </div>
+      </motion.div>
+
+      {/* Charts Section */}
+      <motion.div variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Weekly Earnings Chart */}
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">Weekly Earnings</h2>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={weeklyEarningsData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                <XAxis dataKey="day" tick={{ fontSize: 12 }} stroke="#6b7280" />
+                <YAxis tick={{ fontSize: 12 }} stroke="#6b7280" />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                />
+                <Bar dataKey="earnings" fill="#FF9B51" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Online Status Toggle */}
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">Online Status</h2>
+          <div className="flex flex-col items-center justify-center h-64">
+            <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-4 ${profile?.is_online ? 'bg-green-100' : 'bg-gray-100'}`}>
+              <Wifi className={`w-12 h-12 ${profile?.is_online ? 'text-green-600' : 'text-gray-400'}`} />
+            </div>
+            <p className={`text-lg font-bold ${profile?.is_online ? 'text-green-600' : 'text-gray-500'}`}>
+              {profile?.is_online ? 'Online' : 'Offline'}
+            </p>
+            <p className="text-sm text-gray-500 mt-1 text-center">
+              {profile?.is_online 
+                ? 'You are receiving delivery requests' 
+                : 'Go online to start receiving requests'}
+            </p>
+            <Link
+              href="/rider/status"
+              className="mt-4 bg-[#FF9B51] hover:bg-[#e8883e] text-white text-sm font-semibold px-6 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              {profile?.is_online ? 'Go Offline' : 'Go Online'}
             </Link>
-            <span className="bg-[#brand-orange] bg-slate-800 text-white text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">
-              Rider
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex flex-col text-right">
-              <span className="text-sm font-semibold text-[#25343F]">{user?.name}</span>
-              <span className="text-xs text-slate-400">{user?.email}</span>
-            </div>
-            <button
-              onClick={logout}
-              className="text-xs font-semibold border border-slate-200 hover:border-[#25343F] hover:bg-slate-50 transition-colors text-slate-600 px-4 py-2 rounded-xl cursor-pointer"
-            >
-              Sign Out
-            </button>
           </div>
         </div>
-      </header>
+      </motion.div>
 
-      {/* Main content */}
-      <main className="max-w-6xl mx-auto px-5 sm:px-8 py-10">
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-        >
-          <div>
-            <h1 className="text-3xl font-bold text-[#25343F] tracking-tight">Rider Dashboard</h1>
-            <p className="text-slate-500 text-sm mt-1">Manage your online status and deliver packages.</p>
-          </div>
-
-          {/* Online/Offline Toggle */}
-          <div className="flex items-center gap-3 bg-white p-3 px-5 rounded-2xl shadow-sm border border-slate-100 self-start">
-            <span className={`w-3.5 h-3.5 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-300"}`} />
-            <span className="text-sm font-bold text-[#25343F]">
-              Status: {isOnline ? "ONLINE" : "OFFLINE"}
-            </span>
-            <button
-              onClick={handleToggleOnline}
-              disabled={isToggling}
-              className={`ml-4 text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer transition-all ${
-                isOnline
-                  ? "bg-red-500 hover:bg-red-600 text-white"
-                  : "bg-emerald-500 hover:bg-emerald-600 text-white"
-              }`}
-            >
-              {isToggling ? "Updating..." : isOnline ? "Go Offline" : "Go Online"}
-            </button>
-          </div>
-        </motion.div>
-
-        {statusMessage && (
-          <div className="bg-emerald-50 text-emerald-800 border border-emerald-100 p-4 rounded-2xl text-sm mb-6 font-medium">
-            {statusMessage}
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-red-50 text-red-700 border border-red-100 p-4 rounded-2xl text-sm mb-6 font-medium">
-            {error}
-          </div>
-        )}
-
-        {/* Dashboard Widgets */}
-        <div className="grid md:grid-cols-2 gap-6 mb-10">
-          {/* Active Job card */}
-          <div className="bg-white rounded-3xl p-6 shadow-md border border-slate-100 flex flex-col justify-between h-48">
-            <div>
-              <div className="w-10 h-10 rounded-2xl bg-[#FF9B51]/10 flex items-center justify-center text-[#FF9B51] mb-4">
-                📍
-              </div>
-              <h2 className="text-lg font-bold text-[#25343F]">Active Delivery Task</h2>
-              <p className="text-xs text-slate-500 mt-1">Your current matched pickup details will show up here.</p>
-            </div>
-            <div className="text-xs text-slate-400 font-semibold mt-4">No active delivery matched</div>
-          </div>
-
-          {/* Rider Stats card */}
-          <div className="bg-white rounded-3xl p-6 shadow-md border border-slate-100 flex flex-col justify-between h-48">
-            <div>
-              <div className="w-10 h-10 rounded-2xl bg-[#EAEFEF] flex items-center justify-center text-[#25343F] mb-4">
-                📈
-              </div>
-              <h2 className="text-lg font-bold text-[#25343F]">Your Daily Earnings</h2>
-              <p className="text-xs text-slate-500 mt-1">Total completed trips and earnings for today.</p>
-            </div>
-            <div className="flex justify-between items-center text-sm font-semibold mt-4">
-              <span className="text-slate-400">0 Trips</span>
-              <span className="text-[#FF9B51] font-black text-lg">0 RWF</span>
-            </div>
-          </div>
+      {/* Recent Activity Table */}
+      <motion.div variants={fadeUp} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-800">Recent Deliveries</h2>
+          <Link
+            href="/rider/status"
+            className="text-sm text-[#FF9B51] hover:text-[#e8883e] font-semibold flex items-center gap-1 cursor-pointer"
+          >
+            View All <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
-
-        {/* Available Orders Section */}
-        <div className="bg-white rounded-3xl p-6 shadow-md border border-slate-100">
-          <h2 className="text-lg font-bold text-[#25343F] mb-4">Pending Deliveries in Your Area</h2>
-          <div className="border border-slate-100 rounded-2xl p-8 text-center text-xs text-slate-400 font-medium">
-            {isOnline
-              ? "Scanning for requests... Keep this page open to receive matches."
-              : "Go online to start receiving delivery job offers."}
-          </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Delivery ID</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Pickup</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Dropoff</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Amount</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {recentDeliveries.map((delivery) => (
+                <tr key={delivery.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 text-sm font-medium text-gray-800">{delivery.id}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{delivery.pickup}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{delivery.dropoff}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-800">{delivery.amount.toLocaleString()} RWF</td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        delivery.status === "DELIVERED"
+                          ? "bg-green-100 text-green-700"
+                          : delivery.status === "CANCELLED"
+                          ? "bg-red-100 text-red-700"
+                          : delivery.status === "IN TRANSIT"
+                          ? "bg-orange-100 text-orange-700"
+                          : "bg-yellow-100 text-yellow-700"
+                      }`}
+                    >
+                      {delivery.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </main>
-    </div>
-  );
-}
+      </motion.div>
 
-export default function RiderDashboard() {
-  return (
-    <AuthGuard allowedRoles={["rider"]}>
-      <RiderDashboardContent />
-    </AuthGuard>
+    </motion.div>
   );
 }
