@@ -222,7 +222,7 @@ function RegisterForm() {
             required
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            placeholder="Aline Uwase"
+            placeholder="John Doe"
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-[#FF9B51] focus:ring-1 focus:ring-[#FF9B51] outline-none transition-all duration-150 bg-slate-50 focus:bg-white text-sm text-[#25343F] shadow-sm focus:-translate-y-[1px]"
           />
         </div>
