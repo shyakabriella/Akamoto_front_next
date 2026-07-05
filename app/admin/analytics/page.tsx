@@ -265,9 +265,18 @@ export default function AnalyticsPage() {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
               <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#6b7280" />
               <YAxis tick={{ fontSize: 12 }} stroke="#6b7280" tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px' }}
-                formatter={(value: number, name: string) => [`${value.toLocaleString()} RWF`, name]}
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#fff",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  fontSize: "12px"
+                }}
+                formatter={(value, name) => {
+                  const label = String(name ?? "");
+                  const numericValue = typeof value === "number" ? value : Number(value ?? 0);
+                  return [`${numericValue.toLocaleString()} RWF`, label];
+                }}
               />
               <Line type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={2} dot={{ fill: '#3B82F6' }} name="Total Revenue" />
               <Line type="monotone" dataKey="commission" stroke="#10B981" strokeWidth={2} dot={{ fill: '#10B981' }} name="Commission" />
